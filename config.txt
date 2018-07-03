@@ -1,0 +1,2 @@
+1@email.con,token1
+2@email.com,token2
