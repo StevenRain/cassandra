@@ -1,12 +1,16 @@
 package com.cassandra.utils;
 
 import com.cassandra.dto.entity.OpenResult;
+import com.cassandra.dto.entity.UserInfo;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.gson.Gson;
 import com.google.gson.JsonParser;
 import com.google.gson.annotations.SerializedName;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -15,6 +19,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.CollectionUtils;
 
 @Slf4j
 public class S118Utils {
@@ -105,5 +110,40 @@ public class S118Utils {
                 .evenRatio(evenRatio)
                 .openResultDtoList(openResultDtoList)
                 .build();
+    }
+
+    public static List<UserInfo> getAllUserConfig() {
+        String currentPath = System.getProperty("user.dir");
+        String fileName = "config.txt";
+        Path path = Paths.get(currentPath, fileName);
+        List<String> allLines = Lists.newArrayList();
+        try {
+            allLines = Files.readAllLines(path);
+        }catch (Exception e) {
+            log.error("{}", e);
+        }
+        if(!CollectionUtils.isEmpty(allLines)) {
+            return allLines.stream().map(line -> {
+                String[] splits = line.split(",");
+                return UserInfo.builder().email(splits[0]).token(splits[1]).build();
+            }).collect(Collectors.toList());
+        }
+        return Lists.newArrayList();
+    }
+
+    public static double getBalance(String token) {
+        Map<String, String> headerMap = Maps.newHashMap();
+        headerMap.put("fr", "9");
+        headerMap.put("tk", token);
+        headerMap.put("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1");
+
+        String payload = "{}";
+        String balanceUrl = "https://11c8.cc/apis/money/findBalanceApp";
+        String result = HttpUtils.sendPostByJsonData(balanceUrl, headerMap, payload);
+        if(result.contains("balance")) {
+            String balanceString = new JsonParser().parse(result).getAsJsonObject().getAsJsonObject("data").get("balance").getAsString();
+            return Double.parseDouble(balanceString);
+        }
+        return 0.0;
     }
 }
