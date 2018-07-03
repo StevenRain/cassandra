@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: cassandra-service
+server:
+  port: 8002
+  contextPath: /api/cassandra
