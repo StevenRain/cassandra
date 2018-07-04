@@ -38,7 +38,7 @@
   ​
 
   <root level="INFO">
-    <appender-ref ref="console"/>
-    <!--<appender-ref ref="flatfile"/>-->
+    <!--<appender-ref ref="console"/>-->
+    <appender-ref ref="flatfile"/>
   </root>
 </configuration>
