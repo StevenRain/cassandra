@@ -164,7 +164,8 @@ public class S118Utils {
         return returnCode == 200;
     }
 
-    public static String getRecommandBettingNumber(List<OpenResult.OpenResultDto> openResultDtoList) {
+    public static String getRecommandBettingNumber(OpenResult openResult) {
+        List<OpenResult.OpenResultDto> openResultDtoList = openResult.getOpenResultDtoList();
         List<OpenResult.OpenResultDto> subOpenResultDtoList = openResultDtoList.stream().skip(openResultDtoList.size() - 4L).collect(Collectors.toList());
         //前3个一样，最后一个不一样的
         boolean bigSmallMatch = subOpenResultDtoList.stream().limit(3).map(OpenResult.OpenResultDto::getBigOrSmall).distinct().count() == 1 &&
@@ -173,24 +174,26 @@ public class S118Utils {
         boolean oddEvenMatch = subOpenResultDtoList.stream().limit(3).map(OpenResult.OpenResultDto::getOddOrEven).distinct().count() == 1 &&
                         subOpenResultDtoList.stream().limit(4).map(OpenResult.OpenResultDto::getOddOrEven).distinct().count() == 2;
 
-        String bettingNumber = "";
         if(bigSmallMatch) {
-            bettingNumber = subOpenResultDtoList.stream().skip(3).map(OpenResult.OpenResultDto::getBigOrSmall).findAny().orElse("");
-//            if(bettingNumber.equals("大")) {
-//
-//            }
+            String bettingNumber = subOpenResultDtoList.stream().skip(3).map(OpenResult.OpenResultDto::getBigOrSmall).findAny().orElse("");
+
+            if(bettingNumber.equals("大") && openResult.getBigRatio() <= 0.3) {
+                return bettingNumber;
+            }
+            if(bettingNumber.equals("小") && openResult.getSmallRatio() <= 0.3) {
+                return bettingNumber;
+            }
         }
 
         if(oddEvenMatch) {
-            bettingNumber = subOpenResultDtoList.stream().skip(3).map(OpenResult.OpenResultDto::getOddOrEven).findAny().orElse("");
+            String bettingNumber = subOpenResultDtoList.stream().skip(3).map(OpenResult.OpenResultDto::getOddOrEven).findAny().orElse("");
+            if(bettingNumber.equals("单") && openResult.getOddRatio() <= 0.3) {
+                return bettingNumber;
+            }
+            if(bettingNumber.equals("双") && openResult.getEvenRatio() <= 0.3) {
+                return bettingNumber;
+            }
         }
-        return bettingNumber;
+        return "";
     }
-
-//    public static void main(String[] args) {
-//        OpenResult openResult = S118Utils.buildLatestOpenResult();
-//        openResult.getOpenResultDtoList().forEach(openResultDto -> log.info("{}", openResultDto));
-//        String bettingNumber = getRecommandBettingNumber(openResult.getOpenResultDtoList());
-//        log.info("本次推荐投注 {}", bettingNumber);
-//    }
 }
