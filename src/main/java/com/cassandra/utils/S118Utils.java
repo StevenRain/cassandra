@@ -1,12 +1,16 @@
 package com.cassandra.utils;
 
 import com.cassandra.dto.entity.OpenResult;
+import com.cassandra.dto.entity.UserInfo;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.gson.Gson;
 import com.google.gson.JsonParser;
 import com.google.gson.annotations.SerializedName;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -15,6 +19,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.CollectionUtils;
 
 @Slf4j
 public class S118Utils {
@@ -130,20 +135,6 @@ public class S118Utils {
             return Double.parseDouble(balanceString);
         }
         return 0.0;
-    }
-
-
-    public static short betByHistory(){
-        List<OpenResult.OpenResultDto> openResultDtoList = buildLatestOpenResult().getOpenResultDtoList();
-        //倒数第二
-        OpenResult.OpenResultDto openResultTow = openResultDtoList.get(openResultDtoList.size() - 2);
-        //倒数第一
-        OpenResult.OpenResultDto openResultOne = openResultDtoList.get(openResultDtoList.size() - 1);
-        //单双连续
-        if ("单".equals(openResultOne)){
-
-        }
-        return 1;
     }
 
     /**
