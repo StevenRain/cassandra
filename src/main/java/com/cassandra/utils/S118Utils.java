@@ -160,11 +160,16 @@ public class S118Utils {
         headerMap.put("Content-Type", "application/json");
 
         String bettingPattern = "{\"lotId\":55,\"isChase\":0,\"chaseCount\":0,\"baseInfo\":[{\"key\":\"ffkshz\",\"betCode\":\"%s\",\"betNum\":1,\"thisReward\":0,\"odds\":\"{\\\"%s\\\":1.98}\",\"betType\":0,\"oneMoney\":\"%.2f\",\"money\":%.1f,\"position\":\"\",\"issue\":\"%s\"}]}";
-        String payload = String.format(bettingPattern, bettingDto.getBettingNumber(), bettingDto.getBettingNumber(), bettingDto.getPrice(), bettingDto.getPrice(), bettingDto.getBettingNumber());
+        String payload = String.format(bettingPattern, bettingDto.getBettingNumber(), bettingDto.getBettingNumber(), bettingDto.getPrice(), bettingDto.getPrice(), bettingDto.getGameIssueNumber());
 
         String result = HttpUtils.sendPostByJsonData(bettingUrl, headerMap, payload);
         int returnCode = new JsonParser().parse(result).getAsJsonObject().get("code").getAsInt();
-        return returnCode == 200;
+        if(returnCode == 200) {
+            return true;
+        }else {
+            log.error("投注失败，投注dto{}，payload {}, 错误消息 {}", bettingDto, payload, result);
+            return false;
+        }
     }
 
     public static String getRecommandBettingNumber(OpenResult openResult) {
@@ -172,31 +177,40 @@ public class S118Utils {
         List<OpenResult.OpenResultDto> subOpenResultDtoList = openResultDtoList.stream().skip(openResultDtoList.size() - 4L).collect(Collectors.toList());
         //前3个一样，最后一个不一样的
         boolean bigSmallMatch = subOpenResultDtoList.stream().limit(CONTINUE_ISSUES).map(OpenResult.OpenResultDto::getBigOrSmall).distinct().count() == 1 &&
-                subOpenResultDtoList.stream().limit(CONTINUE_ISSUES + 1).map(OpenResult.OpenResultDto::getBigOrSmall).distinct().count() == 2;
+                subOpenResultDtoList.stream().limit(CONTINUE_ISSUES + 1L).map(OpenResult.OpenResultDto::getBigOrSmall).distinct().count() == 2;
 
         boolean oddEvenMatch = subOpenResultDtoList.stream().limit(CONTINUE_ISSUES).map(OpenResult.OpenResultDto::getOddOrEven).distinct().count() == 1 &&
-                        subOpenResultDtoList.stream().limit(CONTINUE_ISSUES + 1).map(OpenResult.OpenResultDto::getOddOrEven).distinct().count() == 2;
+                        subOpenResultDtoList.stream().limit(CONTINUE_ISSUES + 1L).map(OpenResult.OpenResultDto::getOddOrEven).distinct().count() == 2;
 
+        String finalBettingNumber = "";
+        double minRatio = 0.0;
         if(bigSmallMatch) {
             String bettingNumber = subOpenResultDtoList.stream().skip(CONTINUE_ISSUES).map(OpenResult.OpenResultDto::getBigOrSmall).findAny().orElse("");
 
             if(bettingNumber.equals("大") && openResult.getBigRatio() <= THRESHOLD) {
-                return bettingNumber;
+                minRatio = openResult.getBigRatio();
+                finalBettingNumber = bettingNumber;
             }
             if(bettingNumber.equals("小") && openResult.getSmallRatio() <= THRESHOLD) {
-                return bettingNumber;
+                minRatio = openResult.getSmallRatio();
+                finalBettingNumber = bettingNumber;
             }
         }
 
         if(oddEvenMatch) {
             String bettingNumber = subOpenResultDtoList.stream().skip(CONTINUE_ISSUES).map(OpenResult.OpenResultDto::getOddOrEven).findAny().orElse("");
             if(bettingNumber.equals("单") && openResult.getOddRatio() <= THRESHOLD) {
-                return bettingNumber;
+                if(openResult.getOddRatio() < minRatio) {
+                    minRatio = openResult.getOddRatio();
+                    finalBettingNumber = bettingNumber;
+                }
             }
             if(bettingNumber.equals("双") && openResult.getEvenRatio() <= THRESHOLD) {
-                return bettingNumber;
+                if(openResult.getEvenRatio() < minRatio) {
+                    finalBettingNumber = bettingNumber;
+                }
             }
         }
-        return "";
+        return finalBettingNumber;
     }
 }
