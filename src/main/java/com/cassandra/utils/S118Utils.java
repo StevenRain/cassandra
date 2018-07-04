@@ -1,16 +1,12 @@
 package com.cassandra.utils;
 
 import com.cassandra.dto.entity.OpenResult;
-import com.cassandra.dto.entity.UserInfo;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.gson.Gson;
 import com.google.gson.JsonParser;
 import com.google.gson.annotations.SerializedName;
 import java.math.BigDecimal;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -19,7 +15,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.util.CollectionUtils;
 
 @Slf4j
 public class S118Utils {
@@ -118,7 +113,9 @@ public class S118Utils {
                 .build();
     }
 
-
+    /**
+     * 获取用户余额
+     * */
     public static double getBalance(String token) {
         Map<String, String> headerMap = Maps.newHashMap();
         headerMap.put("fr", "9");
@@ -135,6 +132,7 @@ public class S118Utils {
         return 0.0;
     }
 
+
     public static short betByHistory(){
         List<OpenResult.OpenResultDto> openResultDtoList = buildLatestOpenResult().getOpenResultDtoList();
         //倒数第二
@@ -147,4 +145,62 @@ public class S118Utils {
         }
         return 1;
     }
+
+    /**
+     * 获取最新期号
+     * */
+    public static String getLatestGameIssueNumber() {
+        String url = "https://11c8.cc/apis/lotIssue/findOpen?lotId=55";
+        Map<String, String> headerMap = Maps.newHashMap();
+        headerMap.put("fr", "9");
+        String result = HttpUtils.sendGet(url, headerMap);
+        return new JsonParser().parse(result).getAsJsonObject().getAsJsonObject("data").get("issue").getAsString();
+    }
+
+
+    /**
+     * 投注
+     * */
+    public static boolean bet(String gameIssueNumber, String bettingNumber, double price, String token) {
+        String bettingUrl = "https://11c8.cc/apis/orderLot/addApp";
+        Map<String, String> headerMap = Maps.newHashMap();
+        headerMap.put("fr", "9");
+        headerMap.put("tk", token);
+        headerMap.put("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1");
+        headerMap.put("Content-Type", "application/json");
+
+        String bettingPattern = "{\"lotId\":55,\"isChase\":0,\"chaseCount\":0,\"baseInfo\":[{\"key\":\"ffkshz\",\"betCode\":\"%s\",\"betNum\":1,\"thisReward\":0,\"odds\":\"{\\\"%s\\\":1.98}\",\"betType\":0,\"oneMoney\":\"%.2f\",\"money\":%.1f,\"position\":\"\",\"issue\":\"%s\"}]}";
+        String payload = String.format(bettingPattern, bettingNumber, bettingNumber, price, price, gameIssueNumber);
+
+        String result = HttpUtils.sendPostByJsonData(bettingUrl, headerMap, payload);
+        int returnCode = new JsonParser().parse(result).getAsJsonObject().get("code").getAsInt();
+        return returnCode == 200;
+    }
+
+    public static String getRecommandBettingNumber(List<OpenResult.OpenResultDto> openResultDtoList) {
+        List<OpenResult.OpenResultDto> subOpenResultDtoList = openResultDtoList.stream().skip(openResultDtoList.size() - 4L).collect(Collectors.toList());
+        //前3个一样，最后一个不一样的
+        boolean bigSmallMatch = subOpenResultDtoList.stream().limit(3).map(OpenResult.OpenResultDto::getBigOrSmall).distinct().count() == 1 &&
+                subOpenResultDtoList.stream().limit(4).map(OpenResult.OpenResultDto::getBigOrSmall).distinct().count() == 2;
+
+        boolean oddEvenMatch = subOpenResultDtoList.stream().limit(3).map(OpenResult.OpenResultDto::getOddOrEven).distinct().count() == 1 &&
+                        subOpenResultDtoList.stream().limit(4).map(OpenResult.OpenResultDto::getOddOrEven).distinct().count() == 2;
+
+        String bettingNumber = "";
+        if(bigSmallMatch) {
+            bettingNumber = subOpenResultDtoList.stream().skip(3).map(OpenResult.OpenResultDto::getBigOrSmall).findAny().orElse("");
+        }
+
+        if(oddEvenMatch) {
+            bettingNumber = subOpenResultDtoList.stream().skip(3).map(OpenResult.OpenResultDto::getOddOrEven).findAny().orElse("");
+        }
+        return bettingNumber;
+    }
+
+//    public static void main(String[] args) {
+//        OpenResult openResult = S118Utils.buildLatestOpenResult();
+//        openResult.getOpenResultDtoList().forEach(openResultDto -> log.info("{}", openResultDto));
+//        String bettingNumber = getRecommandBettingNumber(openResult.getOpenResultDtoList());
+//        log.info("本次推荐投注 {}", bettingNumber);
+//    }
 }
