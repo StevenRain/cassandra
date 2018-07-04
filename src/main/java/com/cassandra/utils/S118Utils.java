@@ -172,7 +172,7 @@ public class S118Utils {
         }
     }
 
-    public static String getRecommandBettingNumber(OpenResult openResult) {
+    public static String getRecommendBettingNumber(OpenResult openResult) {
         List<OpenResult.OpenResultDto> openResultDtoList = openResult.getOpenResultDtoList();
         List<OpenResult.OpenResultDto> subOpenResultDtoList = openResultDtoList.stream().skip(openResultDtoList.size() - 4L).collect(Collectors.toList());
         //前3个一样，最后一个不一样的
