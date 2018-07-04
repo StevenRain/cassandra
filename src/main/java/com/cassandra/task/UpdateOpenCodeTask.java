@@ -14,7 +14,7 @@ public class UpdateOpenCodeTask {
 
     @Scheduled(cron = "0/5 * * * * *")
     public void updateOpenCode() {
-        OpenResult openResult = S118Utils.getLatestOpenResult();
+        OpenResult openResult = S118Utils.buildLatestOpenResult();
         log.info("{}", openResult);
     }
 }

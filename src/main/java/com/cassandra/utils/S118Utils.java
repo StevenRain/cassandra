@@ -36,6 +36,9 @@ public class S118Utils {
         private List<String> openCodes;
     }
 
+    /**
+     * 获取开奖数据
+     * */
     private static List<GameData> getGameDataList() {
         String url = "https://cai33.net/apis/lotIssue/findPic";
         Map<String, String> headerMap = Maps.newHashMap();
@@ -66,7 +69,10 @@ public class S118Utils {
     };
 
 
-    public static OpenResult getLatestOpenResult() {
+    /**
+     * 生成最近10期的开奖结果分析
+     * */
+    public static OpenResult buildLatestOpenResult() {
         List<GameData> gameDataList = getGameDataList();
         gameDataList = gameDataList.subList(0, 10);
         gameDataList.sort(comparator);
@@ -112,24 +118,6 @@ public class S118Utils {
                 .build();
     }
 
-    public static List<UserInfo> getAllUserConfig() {
-        String currentPath = System.getProperty("user.dir");
-        String fileName = "config.txt";
-        Path path = Paths.get(currentPath, fileName);
-        List<String> allLines = Lists.newArrayList();
-        try {
-            allLines = Files.readAllLines(path);
-        }catch (Exception e) {
-            log.error("{}", e);
-        }
-        if(!CollectionUtils.isEmpty(allLines)) {
-            return allLines.stream().map(line -> {
-                String[] splits = line.split(",");
-                return UserInfo.builder().email(splits[0]).token(splits[1]).build();
-            }).collect(Collectors.toList());
-        }
-        return Lists.newArrayList();
-    }
 
     public static double getBalance(String token) {
         Map<String, String> headerMap = Maps.newHashMap();
