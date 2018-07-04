@@ -1,16 +1,12 @@
 package com.cassandra.utils;
 
 import com.cassandra.dto.entity.OpenResult;
-import com.cassandra.dto.entity.UserInfo;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.gson.Gson;
 import com.google.gson.JsonParser;
 import com.google.gson.annotations.SerializedName;
 import java.math.BigDecimal;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -19,7 +15,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.util.CollectionUtils;
 
 @Slf4j
 public class S118Utils {
