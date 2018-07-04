@@ -14,7 +14,10 @@ public class WoodyUtils {
 
     public static String getToken(String email){
         Optional<UserInfo> userInfoOptional= UserConfigUtils.getAllUserConfig().stream().filter(userWoody -> userWoody.getEmail().contains(email)).findAny();
-        return userInfoOptional.get().getToken();
+        if(userInfoOptional.isPresent()) {
+            return userInfoOptional.get().getToken();
+        }
+        return "";
     }
 
     public static BettingDto buildBetByNumber(String betNumber, String token) {

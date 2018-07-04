@@ -63,16 +63,27 @@ public class UpdateOpenCodeForStevenTask {
         }
     }
 
-    private boolean bettingOneMore(String token) {
-        Pair<String, Double> pair = S118Utils.getLastBettingOrder(token);
+    private boolean bettingOneMore(UserInfo userInfoSteven) {
+        Pair<String, Double> pair = S118Utils.getLastBettingOrder(userInfoSteven.getToken());
         String lastGameIssueNumber = pair.getKey();
         double winingAmount = pair.getValue();
         BettingDto bettingDtoInCache = (BettingDto) cacheMap.get(KEY_FOR_BETTING_DTO);
+        if(Objects.isNull(bettingDtoInCache)) {
+            return false;
+        }
         if(bettingDtoInCache.getGameIssueNumber().equals(lastGameIssueNumber) && winingAmount < 0.001) {
+            log.info("{} 本次翻倍投注", userInfoSteven.getEmail());
             String latestGameIssueNumber = S118Utils.getLatestGameIssueNumber();
             bettingDtoInCache.setGameIssueNumber(latestGameIssueNumber);
             bettingDtoInCache.setPrice(bettingDtoInCache.getPrice() * 2);
             cacheMap.put(KEY_FOR_BETTING_DTO, bettingDtoInCache);
+
+            boolean result = S118Utils.bet(bettingDtoInCache);
+            if(result) {
+                log.info("{} 投注成功, 投注期号{}, 投注内容{}, 投注价格{}", userInfoSteven.getEmail(), bettingDtoInCache.getGameIssueNumber(), bettingDtoInCache.getBettingNumber(), bettingDtoInCache.getPrice());
+            }else {
+                log.error("投注失败");
+            }
             return true;
         }
         return false;
@@ -91,7 +102,7 @@ public class UpdateOpenCodeForStevenTask {
             printAnalyzeResult(openResult);
             cacheMap.put(KEY_FOR_OPEN_RESULT, openResult);
 
-            boolean bettingOneMore = bettingOneMore(userInfoSteven.getToken());
+            boolean bettingOneMore = bettingOneMore(userInfoSteven);
             if(!bettingOneMore) {
                 String recommendBettingNumber = S118Utils.getRecommendBettingNumber(openResult);
                 betting(userInfoSteven, recommendBettingNumber);
