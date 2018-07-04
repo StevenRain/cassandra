@@ -1,5 +1,6 @@
 package com.cassandra.utils;
 
+import com.cassandra.dto.entity.BettingDto;
 import com.cassandra.dto.entity.OpenResult;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -147,16 +148,16 @@ public class S118Utils {
     /**
      * 投注
      * */
-    public static boolean bet(String gameIssueNumber, String bettingNumber, double price, String token) {
+    public static boolean bet(BettingDto bettingDto) {
         String bettingUrl = "https://11c8.cc/apis/orderLot/addApp";
         Map<String, String> headerMap = Maps.newHashMap();
         headerMap.put("fr", "9");
-        headerMap.put("tk", token);
+        headerMap.put("tk", bettingDto.getToken());
         headerMap.put("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1");
         headerMap.put("Content-Type", "application/json");
 
         String bettingPattern = "{\"lotId\":55,\"isChase\":0,\"chaseCount\":0,\"baseInfo\":[{\"key\":\"ffkshz\",\"betCode\":\"%s\",\"betNum\":1,\"thisReward\":0,\"odds\":\"{\\\"%s\\\":1.98}\",\"betType\":0,\"oneMoney\":\"%.2f\",\"money\":%.1f,\"position\":\"\",\"issue\":\"%s\"}]}";
-        String payload = String.format(bettingPattern, bettingNumber, bettingNumber, price, price, gameIssueNumber);
+        String payload = String.format(bettingPattern, bettingDto.getBettingNumber(), bettingDto.getBettingNumber(), bettingDto.getPrice(), bettingDto.getPrice(), bettingDto.getBettingNumber());
 
         String result = HttpUtils.sendPostByJsonData(bettingUrl, headerMap, payload);
         int returnCode = new JsonParser().parse(result).getAsJsonObject().get("code").getAsInt();
@@ -175,6 +176,9 @@ public class S118Utils {
         String bettingNumber = "";
         if(bigSmallMatch) {
             bettingNumber = subOpenResultDtoList.stream().skip(3).map(OpenResult.OpenResultDto::getBigOrSmall).findAny().orElse("");
+//            if(bettingNumber.equals("大")) {
+//
+//            }
         }
 
         if(oddEvenMatch) {
