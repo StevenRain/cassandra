@@ -2,7 +2,6 @@ package com.cassandra.utils;
 
 import com.cassandra.dto.entity.BettingDto;
 import com.cassandra.dto.entity.OpenResult;
-import com.cassandra.dto.entity.UserInfo;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.gson.Gson;
@@ -10,7 +9,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.annotations.SerializedName;
 import java.math.BigDecimal;
-import java.util.*;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Arrays;
@@ -219,53 +217,6 @@ public class S118Utils {
         return finalBettingNumber;
     }
 
-
-    public static String getToken(String email){
-        Optional<UserInfo> userInfoOptional= UserConfigUtils.getAllUserConfig().stream().filter(userWoody -> userWoody.getEmail().contains(email)).findAny();
-        return userInfoOptional.get().getToken();
-    }
-
-    public static BettingDto   buildBetByNumber(String betNumber,String token) {
-        log.info("下注号码为：" + betNumber);
-        if ("单".equals(betNumber)) {
-
-            return BettingDto.builder()
-                    .gameIssueNumber(S118Utils.getLatestGameIssueNumber())
-                    .price(2)
-                    .bettingNumber("单")
-                    .token(token)
-                    .build();
-
-        } else if ("双".equals(betNumber)) {
-
-            return BettingDto.builder()
-                    .gameIssueNumber(S118Utils.getLatestGameIssueNumber())
-                    .price(2)
-                    .bettingNumber("双")
-                    .token(token)
-                    .build();
-
-        } else if ("大".equals(betNumber)) {
-
-            return BettingDto.builder()
-                    .gameIssueNumber(S118Utils.getLatestGameIssueNumber())
-                    .price(2)
-                    .bettingNumber("大")
-                    .token(token)
-                    .build();
-
-        } else if ("小".equals(betNumber)) {
-
-            return BettingDto.builder()
-                    .gameIssueNumber(S118Utils.getLatestGameIssueNumber())
-                    .price(2)
-                    .bettingNumber("小")
-                    .token(token)
-                    .build();
-
-        }
-        return null;
-    }
 
     public static Pair<String, Double> getLastBettingOrder(String token) {
         Map<String, String> headerMap = getHeaderMap();
