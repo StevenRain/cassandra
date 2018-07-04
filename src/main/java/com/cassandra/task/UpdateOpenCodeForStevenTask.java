@@ -34,7 +34,7 @@ public class UpdateOpenCodeForStevenTask {
         double balance = S118Utils.getBalance(userInfo.getToken());
         log.info("{} 当前余额 {}", userInfo.getEmail(), balance);
 
-        double price = BigDecimal.valueOf(balance / 20).setScale(1, BigDecimal.ROUND_HALF_UP).doubleValue();
+        double price = BigDecimal.valueOf(balance / 40).setScale(1, BigDecimal.ROUND_HALF_UP).doubleValue();
         if(price > 1.0) {
             price = BigDecimal.valueOf(price).setScale(0, BigDecimal.ROUND_DOWN).doubleValue();
         }
@@ -70,37 +70,6 @@ public class UpdateOpenCodeForStevenTask {
         }
     }
 
-//    private boolean bettingOneMore(UserInfo userInfo) {
-//        Optional<BettingDto> bettingDtoOptional = S118Utils.getLastBettingOrder(userInfo.getToken());
-//        bettingDtoOptional.ifPresent(bettingDto -> {
-//            double price = bettingDto.getPrice() * 2;
-//            log.info("用户 {} 上期未中奖，本次加倍投注, 投注金额 {}", userInfo.getEmail(), price);
-//            String gameIssueNumber = S118Utils.getLatestGameIssueNumber();
-//            BettingDto bettingDtoNew = BettingDto.builder().bettingNumber(bettingDto.getBettingNumber()).price(price).token(bettingDto.getToken()).gameIssueNumber(gameIssueNumber).token(userInfo.getToken()).build();
-//
-//            BettingDto bettingDtoInCache = (BettingDto) cacheMap.get(KEY_FOR_BETTING_DTO);
-//            if(Objects.nonNull(bettingDtoInCache) && bettingDtoInCache.getGameIssueNumber().equals(gameIssueNumber)) {
-//                return;
-//            }
-//
-//            boolean result = S118Utils.bet(bettingDtoNew);
-//            if(result) {
-//                cacheMap.put(KEY_FOR_BETTING_DTO, bettingDtoNew);
-//                log.info("{} 投注成功, 投注期号{}, 投注内容{}, 投注价格{}", userInfo.getEmail(), bettingDtoNew.getGameIssueNumber(), bettingDtoNew.getBettingNumber(), bettingDtoNew.getPrice());
-//            }else {
-//                SleepUtils.sleepMilliseconds(5000);
-//                result = S118Utils.bet(bettingDtoNew);
-//                if(result) {
-//                    cacheMap.put(KEY_FOR_BETTING_DTO, bettingDtoNew);
-//                    log.info("{} 投注成功, 投注期号{}, 投注内容{}, 投注价格{}", userInfo.getEmail(), bettingDtoNew.getGameIssueNumber(), bettingDtoNew.getBettingNumber(), bettingDtoNew.getPrice());
-//                }else {
-//                    log.error("投注失败");
-//                }
-//            }
-//        });
-//        return bettingDtoOptional.isPresent();
-//    }
-
 
     @Scheduled(fixedRate = 10000)
     public void updateOpenCodeSteven() {
@@ -109,11 +78,6 @@ public class UpdateOpenCodeForStevenTask {
             OpenResult openResult = S118Utils.buildLatestOpenResult();
             printAnalyzeResult(openResult);
 
-//            boolean bettingOneMore = bettingOneMore(userInfo);
-//            if(!bettingOneMore) {
-//                String recommendBettingNumber = S118Utils.getRecommendBettingNumber(openResult);
-//                betting(userInfo, recommendBettingNumber);
-//            }
             String recommendBettingNumber = S118Utils.getRecommendBettingNumber(openResult);
             betting(userInfo, recommendBettingNumber);
         });
