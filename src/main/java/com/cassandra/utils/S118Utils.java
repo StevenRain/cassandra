@@ -20,6 +20,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class S118Utils {
 
+    private static final double THRESHOLD = 0.3;
+    private static final int CONTINUE_ISSUES = 3;
+
     @Data
     private static class GameData {
         @SerializedName("issue")
@@ -168,29 +171,29 @@ public class S118Utils {
         List<OpenResult.OpenResultDto> openResultDtoList = openResult.getOpenResultDtoList();
         List<OpenResult.OpenResultDto> subOpenResultDtoList = openResultDtoList.stream().skip(openResultDtoList.size() - 4L).collect(Collectors.toList());
         //前3个一样，最后一个不一样的
-        boolean bigSmallMatch = subOpenResultDtoList.stream().limit(3).map(OpenResult.OpenResultDto::getBigOrSmall).distinct().count() == 1 &&
-                subOpenResultDtoList.stream().limit(4).map(OpenResult.OpenResultDto::getBigOrSmall).distinct().count() == 2;
+        boolean bigSmallMatch = subOpenResultDtoList.stream().limit(CONTINUE_ISSUES).map(OpenResult.OpenResultDto::getBigOrSmall).distinct().count() == 1 &&
+                subOpenResultDtoList.stream().limit(CONTINUE_ISSUES + 1).map(OpenResult.OpenResultDto::getBigOrSmall).distinct().count() == 2;
 
-        boolean oddEvenMatch = subOpenResultDtoList.stream().limit(3).map(OpenResult.OpenResultDto::getOddOrEven).distinct().count() == 1 &&
-                        subOpenResultDtoList.stream().limit(4).map(OpenResult.OpenResultDto::getOddOrEven).distinct().count() == 2;
+        boolean oddEvenMatch = subOpenResultDtoList.stream().limit(CONTINUE_ISSUES).map(OpenResult.OpenResultDto::getOddOrEven).distinct().count() == 1 &&
+                        subOpenResultDtoList.stream().limit(CONTINUE_ISSUES + 1).map(OpenResult.OpenResultDto::getOddOrEven).distinct().count() == 2;
 
         if(bigSmallMatch) {
-            String bettingNumber = subOpenResultDtoList.stream().skip(3).map(OpenResult.OpenResultDto::getBigOrSmall).findAny().orElse("");
+            String bettingNumber = subOpenResultDtoList.stream().skip(CONTINUE_ISSUES).map(OpenResult.OpenResultDto::getBigOrSmall).findAny().orElse("");
 
-            if(bettingNumber.equals("大") && openResult.getBigRatio() <= 0.3) {
+            if(bettingNumber.equals("大") && openResult.getBigRatio() <= THRESHOLD) {
                 return bettingNumber;
             }
-            if(bettingNumber.equals("小") && openResult.getSmallRatio() <= 0.3) {
+            if(bettingNumber.equals("小") && openResult.getSmallRatio() <= THRESHOLD) {
                 return bettingNumber;
             }
         }
 
         if(oddEvenMatch) {
-            String bettingNumber = subOpenResultDtoList.stream().skip(3).map(OpenResult.OpenResultDto::getOddOrEven).findAny().orElse("");
-            if(bettingNumber.equals("单") && openResult.getOddRatio() <= 0.3) {
+            String bettingNumber = subOpenResultDtoList.stream().skip(CONTINUE_ISSUES).map(OpenResult.OpenResultDto::getOddOrEven).findAny().orElse("");
+            if(bettingNumber.equals("单") && openResult.getOddRatio() <= THRESHOLD) {
                 return bettingNumber;
             }
-            if(bettingNumber.equals("双") && openResult.getEvenRatio() <= 0.3) {
+            if(bettingNumber.equals("双") && openResult.getEvenRatio() <= THRESHOLD) {
                 return bettingNumber;
             }
         }

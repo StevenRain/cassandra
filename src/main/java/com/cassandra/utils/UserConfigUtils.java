@@ -26,7 +26,7 @@ public class UserConfigUtils {
         }catch (Exception e) {
             log.error("{}", e);
         }
-        allLines.forEach(line -> log.info("获取到用户配置 {}", line));
+
         if(!CollectionUtils.isEmpty(allLines)) {
             return allLines.stream().map(line -> {
                 String[] splits = line.split(",");
