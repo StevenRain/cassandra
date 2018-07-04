@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import javafx.util.Pair;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -20,6 +21,8 @@ import org.springframework.util.StringUtils;
 public class UpdateOpenCodeForStevenTask {
 
     private static Map<String, Object> cacheMap = Maps.newHashMap();
+    private static final String KEY_FOR_BETTING_DTO = "keyForBettingDto";
+    private static final String KEY_FOR_OPEN_RESULT = "openResultKey";
 
     private void printAnalyzeResult(OpenResult openResult) {
         log.info("本次分析结果");
@@ -43,12 +46,11 @@ public class UpdateOpenCodeForStevenTask {
             String gameIssueNumber = S118Utils.getLatestGameIssueNumber();
             double price = buildPrice(userInfoSteven.getToken());
             BettingDto bettingDto = BettingDto.builder().gameIssueNumber(gameIssueNumber).bettingNumber(recommandBettingNumber).price(price).token(userInfoSteven.getToken()).build();
-            String keyForBettingDto = "keyForBettingDto";
-            BettingDto bettingDtoInCache = (BettingDto) cacheMap.get(keyForBettingDto);
+            BettingDto bettingDtoInCache = (BettingDto) cacheMap.get(KEY_FOR_BETTING_DTO);
             if(Objects.nonNull(bettingDtoInCache) && bettingDtoInCache.getGameIssueNumber().equals(bettingDto.getGameIssueNumber())) {
                 return;
             }
-            cacheMap.put(keyForBettingDto, bettingDto);
+            cacheMap.put(KEY_FOR_BETTING_DTO, bettingDto);
             log.info("本次推荐投注 {}", recommandBettingNumber);
             boolean result = S118Utils.bet(bettingDto);
             if(result) {
@@ -61,23 +63,39 @@ public class UpdateOpenCodeForStevenTask {
         }
     }
 
+    private boolean bettingOneMore(String token) {
+        Pair<String, Double> pair = S118Utils.getLastBettingOrder(token);
+        String lastGameIssueNumber = pair.getKey();
+        double winingAmount = pair.getValue();
+        BettingDto bettingDtoInCache = (BettingDto) cacheMap.get(KEY_FOR_BETTING_DTO);
+        if(bettingDtoInCache.getGameIssueNumber().equals(lastGameIssueNumber) && winingAmount < 0.001) {
+            String latestGameIssueNumber = S118Utils.getLatestGameIssueNumber();
+            bettingDtoInCache.setGameIssueNumber(latestGameIssueNumber);
+            bettingDtoInCache.setPrice(bettingDtoInCache.getPrice() * 2);
+            cacheMap.put(KEY_FOR_BETTING_DTO, bettingDtoInCache);
+            return true;
+        }
+        return false;
+    }
+
     @Scheduled(cron = "0/10 * * * * *")
     public void updateOpenCodeSteven() {
         Optional<UserInfo> userInfoOptional= UserConfigUtils.getAllUserConfig().stream().filter(userInfo -> userInfo.getEmail().contains("gmail")).findAny();
         userInfoOptional.ifPresent(userInfoSteven -> {
-            String keyForOpenResult = "openResultKey";
             OpenResult openResult = S118Utils.buildLatestOpenResult();
-            OpenResult openResultInCache = (OpenResult)cacheMap.get(keyForOpenResult);
+            OpenResult openResultInCache = (OpenResult)cacheMap.get(KEY_FOR_OPEN_RESULT);
             if(Objects.nonNull(openResultInCache) && openResult.equals(openResultInCache)) {
                 log.info("等待开奖结果更新");
                 return;
             }
             printAnalyzeResult(openResult);
-            cacheMap.put(keyForOpenResult, openResult);
-            //TODO 倍投优先
+            cacheMap.put(KEY_FOR_OPEN_RESULT, openResult);
 
-            String recommendBettingNumber = S118Utils.getRecommendBettingNumber(openResult);
-            betting(userInfoSteven, recommendBettingNumber);
+            boolean bettingOneMore = bettingOneMore(userInfoSteven.getToken());
+            if(!bettingOneMore) {
+                String recommendBettingNumber = S118Utils.getRecommendBettingNumber(openResult);
+                betting(userInfoSteven, recommendBettingNumber);
+            }
         });
     }
 }

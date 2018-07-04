@@ -6,12 +6,20 @@ import com.cassandra.dto.entity.UserInfo;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.annotations.SerializedName;
 import java.math.BigDecimal;
 import java.util.*;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import javafx.util.Pair;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
@@ -33,16 +41,20 @@ public class S118Utils {
         private List<String> openCodes;
     }
 
+    private static Map<String, String> getHeaderMap() {
+        Map<String, String> headerMap = Maps.newHashMap();
+        headerMap.put("fr", "9");
+        headerMap.put("Content-Type", "application/json");
+        headerMap.put("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1");
+        return headerMap;
+    }
+
     /**
      * 获取开奖数据
      * */
     private static List<GameData> getGameDataList() {
         String url = "https://cai33.net/apis/lotIssue/findPic";
-        Map<String, String> headerMap = Maps.newHashMap();
-        headerMap.put("fr", "9");
-        headerMap.put("Content-Type", "application/json");
-        headerMap.put("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1");
-
+        Map<String, String> headerMap = getHeaderMap();
         String jsonData = "{\"lotId\":55,\"nearly\":101}";
 
         String result = HttpUtils.sendPostByJsonData(url, headerMap, jsonData);
@@ -119,10 +131,8 @@ public class S118Utils {
      * 获取用户余额
      * */
     public static double getBalance(String token) {
-        Map<String, String> headerMap = Maps.newHashMap();
-        headerMap.put("fr", "9");
+        Map<String, String> headerMap = getHeaderMap();
         headerMap.put("tk", token);
-        headerMap.put("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1");
 
         String payload = "{}";
         String balanceUrl = "https://11c8.cc/apis/money/findBalanceApp";
@@ -151,11 +161,8 @@ public class S118Utils {
      * */
     public static boolean bet(BettingDto bettingDto) {
         String bettingUrl = "https://11c8.cc/apis/orderLot/addApp";
-        Map<String, String> headerMap = Maps.newHashMap();
-        headerMap.put("fr", "9");
+        Map<String, String> headerMap = getHeaderMap();
         headerMap.put("tk", bettingDto.getToken());
-        headerMap.put("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1");
-        headerMap.put("Content-Type", "application/json");
 
         String bettingPattern = "{\"lotId\":55,\"isChase\":0,\"chaseCount\":0,\"baseInfo\":[{\"key\":\"ffkshz\",\"betCode\":\"%s\",\"betNum\":1,\"thisReward\":0,\"odds\":\"{\\\"%s\\\":1.98}\",\"betType\":0,\"oneMoney\":\"%.2f\",\"money\":%.1f,\"position\":\"\",\"issue\":\"%s\"}]}";
         String payload = String.format(bettingPattern, bettingDto.getBettingNumber(), bettingDto.getBettingNumber(), bettingDto.getPrice(), bettingDto.getPrice(), bettingDto.getGameIssueNumber());
@@ -212,42 +219,44 @@ public class S118Utils {
         return finalBettingNumber;
     }
 
+
     public static String getToken(String email){
         Optional<UserInfo> userInfoOptional= UserConfigUtils.getAllUserConfig().stream().filter(userWoody -> userWoody.getEmail().contains(email)).findAny();
         return userInfoOptional.get().getToken();
     }
-    public static BettingDto   buildBetByNumber(String betNumber,String token){
-        log.info("下注号码为："+betNumber);
-        if ("单".equals(betNumber)){
 
-            return   BettingDto.builder()
+    public static BettingDto   buildBetByNumber(String betNumber,String token) {
+        log.info("下注号码为：" + betNumber);
+        if ("单".equals(betNumber)) {
+
+            return BettingDto.builder()
                     .gameIssueNumber(S118Utils.getLatestGameIssueNumber())
                     .price(2)
                     .bettingNumber("单")
                     .token(token)
                     .build();
 
-        }else if ("双".equals(betNumber)){
+        } else if ("双".equals(betNumber)) {
 
-            return   BettingDto.builder()
+            return BettingDto.builder()
                     .gameIssueNumber(S118Utils.getLatestGameIssueNumber())
                     .price(2)
                     .bettingNumber("双")
                     .token(token)
                     .build();
 
-        }else if ("大".equals(betNumber)){
+        } else if ("大".equals(betNumber)) {
 
-            return   BettingDto.builder()
+            return BettingDto.builder()
                     .gameIssueNumber(S118Utils.getLatestGameIssueNumber())
                     .price(2)
                     .bettingNumber("大")
                     .token(token)
                     .build();
 
-        }else if ("小".equals(betNumber)){
+        } else if ("小".equals(betNumber)) {
 
-            return   BettingDto.builder()
+            return BettingDto.builder()
                     .gameIssueNumber(S118Utils.getLatestGameIssueNumber())
                     .price(2)
                     .bettingNumber("小")
@@ -256,5 +265,22 @@ public class S118Utils {
 
         }
         return null;
+    }
+
+    public static Pair<String, Double> getLastBettingOrder(String token) {
+        Map<String, String> headerMap = getHeaderMap();
+        headerMap.put("tk", token);
+
+        String url = "https://11c8.cc/apis/orderLot/findByConditionApp";
+        String pattern = "{\"type\":null,\"createTimeStart\":%d,\"createTimeEnd\":%d,\"pageNo\":1,\"pageSize\":1}";
+        long startTimestamp = LocalDateTime.now().withHour(0).withMinute(0).withSecond(1).toEpochSecond(ZoneOffset.ofHours(8)) * 1000;
+        long endTimestamp = LocalDateTime.now().toEpochSecond(ZoneOffset.ofHours(8)) * 1000;
+        String payload = String.format(pattern, startTimestamp, endTimestamp);
+
+        String result = HttpUtils.sendPostByJsonData(url, headerMap, payload);
+        JsonObject jsonObject = new JsonParser().parse(result).getAsJsonObject().getAsJsonObject("data").getAsJsonArray("resultList").get(0).getAsJsonObject();
+        double winMoney = jsonObject.get("winMoney").getAsDouble();
+        String gameIssueNumber = jsonObject.get("issue").getAsString();
+        return new Pair<>(gameIssueNumber, winMoney);
     }
 }
