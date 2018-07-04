@@ -44,7 +44,7 @@ public class UpdateOpenCodeForStevenTask {
             if(!StringUtils.isEmpty(recommandBettingNumber)) {
                 log.info("本次推荐投注 {}", recommandBettingNumber);
 
-                double price = BigDecimal.valueOf(balance / 100).setScale(1, BigDecimal.ROUND_HALF_UP).doubleValue();
+                double price = BigDecimal.valueOf(balance / 20).setScale(1, BigDecimal.ROUND_HALF_UP).doubleValue();
                 if(price > 1.0) {
                     price = BigDecimal.valueOf(price).setScale(0, BigDecimal.ROUND_DOWN).doubleValue();
                 }
