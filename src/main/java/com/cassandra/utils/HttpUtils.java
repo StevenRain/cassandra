@@ -2,6 +2,7 @@ package com.cassandra.utils;
 
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
+import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -72,7 +73,7 @@ public class HttpUtils extends SSLUtils {
             }
             post.setEntity(new UrlEncodedFormEntity(urlParameters));
             HttpResponse response = getHttpClient().execute(post);
-            return EntityUtils.toString(response.getEntity());
+            return EntityUtils.toString(response.getEntity(), "UTF-8");
         }catch (SocketTimeoutException e1) {
             log.error("Socket读取超时");
             return "";
@@ -94,11 +95,11 @@ public class HttpUtils extends SSLUtils {
                 post.setHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36");
             }
 
-            StringEntity stringEntity = new StringEntity(payload);
+            StringEntity stringEntity = new StringEntity(payload, Charset.forName("utf-8"));
             post.setEntity(stringEntity);
 
             HttpResponse response = getHttpClient().execute(post);
-            return EntityUtils.toString(response.getEntity());
+            return EntityUtils.toString(response.getEntity(), "UTF-8");
         }catch (SocketTimeoutException e1) {
             log.error("Socket读取超时");
             return "";
@@ -112,12 +113,15 @@ public class HttpUtils extends SSLUtils {
     }
 
 
-    public static String sendGet(String url) {
+    public static String sendGet(String url, Map<String, String> headerMap) {
         try{
             HttpGet get = new HttpGet(url);
-            get.setHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36");
+            headerMap.forEach(get::setHeader);
+            if(!headerMap.containsKey("User-Agent")) {
+                get.setHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36");
+            }
             HttpResponse response = getHttpClient().execute(get);
-            return EntityUtils.toString(response.getEntity());
+            return EntityUtils.toString(response.getEntity(), "UTF-8");
         }catch (UnknownHostException e1) {
             log.warn("解析URL地址 {} 失败", url);
             return "";
