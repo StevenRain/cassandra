@@ -24,7 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class S118Utils {
 
-    private static final double THRESHOLD = 0.4;
+    private static final double THRESHOLD = 0.3;
     private static final int CONTINUE_ISSUES = 3;
 
     @Data
@@ -186,7 +186,7 @@ public class S118Utils {
                         subOpenResultDtoList.stream().limit(CONTINUE_ISSUES + 1L).map(OpenResult.OpenResultDto::getOddOrEven).distinct().count() == 2;
 
         String finalBettingNumber = "";
-        double minRatio = 0.0;
+        double minRatio = 1.0;
         if(bigSmallMatch) {
             String bettingNumber = subOpenResultDtoList.stream().skip(CONTINUE_ISSUES).map(OpenResult.OpenResultDto::getBigOrSmall).findAny().orElse("");
 

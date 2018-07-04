@@ -17,7 +17,7 @@ public class UpdateOpenCodeForWoodyTask {
     private final String psw="123456qaz";
 
 
-    @Scheduled(cron = "5/10 * * * * *")
+//    @Scheduled(cron = "5/10 * * * * *")
     public void updateOpenCodeWoody() {
         log.info("投注之前的金额：{}",S118Utils.getBalance(token));
         BetService.betByHistory();
