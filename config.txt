@@ -1,2 +1,2 @@
-1@email.con,token1
+jiangzhuanximl@163.com,token1
 2@email.com,token2

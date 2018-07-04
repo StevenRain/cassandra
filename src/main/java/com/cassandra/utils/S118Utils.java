@@ -134,4 +134,17 @@ public class S118Utils {
         }
         return 0.0;
     }
+
+    public static short betByHistory(){
+        List<OpenResult.OpenResultDto> openResultDtoList = buildLatestOpenResult().getOpenResultDtoList();
+        //倒数第二
+        OpenResult.OpenResultDto openResultTow = openResultDtoList.get(openResultDtoList.size() - 2);
+        //倒数第一
+        OpenResult.OpenResultDto openResultOne = openResultDtoList.get(openResultDtoList.size() - 1);
+        //单双连续
+        if ("单".equals(openResultOne)){
+
+        }
+        return 1;
+    }
 }
