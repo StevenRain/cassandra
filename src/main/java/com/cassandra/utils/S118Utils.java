@@ -5,26 +5,31 @@ import com.cassandra.dto.entity.OpenResult;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.annotations.SerializedName;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import javafx.util.Pair;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.StringUtils;
 
 @Slf4j
 public class S118Utils {
 
-    private static final double THRESHOLD = 0.3;
+    private static final double THRESHOLD = 0.4;
     private static final int CONTINUE_ISSUES = 3;
 
     @Data
@@ -162,7 +167,7 @@ public class S118Utils {
         Map<String, String> headerMap = getHeaderMap();
         headerMap.put("tk", bettingDto.getToken());
 
-        String bettingPattern = "{\"lotId\":55,\"isChase\":0,\"chaseCount\":0,\"baseInfo\":[{\"key\":\"ffkshz\",\"betCode\":\"%s\",\"betNum\":1,\"thisReward\":0,\"odds\":\"{\\\"%s\\\":1.98}\",\"betType\":0,\"oneMoney\":\"%.2f\",\"money\":%.1f,\"position\":\"\",\"issue\":\"%s\"}]}";
+        String bettingPattern = "{\"lotId\":55,\"isChase\":0,\"chaseCount\":0,\"baseInfo\":[{\"key\":\"ffkshz\",\"betCode\":\"%s\",\"betNum\":1,\"thisReward\":0,\"odds\":\"{\\\"%s\\\":1.98}\",\"betType\":0,\"oneMoney\":\"%.2f\",\"money\":%.2f,\"position\":\"\",\"issue\":\"%s\"}]}";
         String payload = String.format(bettingPattern, bettingDto.getBettingNumber(), bettingDto.getBettingNumber(), bettingDto.getPrice(), bettingDto.getPrice(), bettingDto.getGameIssueNumber());
 
         String result = HttpUtils.sendPostByJsonData(bettingUrl, headerMap, payload);
@@ -218,20 +223,36 @@ public class S118Utils {
     }
 
 
-    public static Pair<String, Double> getLastBettingOrder(String token) {
+    public static Optional<BettingDto> getLastBettingOrder(String token) {
         Map<String, String> headerMap = getHeaderMap();
         headerMap.put("tk", token);
 
         String url = "https://11c8.cc/apis/orderLot/findByConditionApp";
-        String pattern = "{\"type\":null,\"createTimeStart\":%d,\"createTimeEnd\":%d,\"pageNo\":1,\"pageSize\":1}";
-        long startTimestamp = LocalDateTime.now().withHour(0).withMinute(0).withSecond(1).toEpochSecond(ZoneOffset.ofHours(8)) * 1000;
-        long endTimestamp = LocalDateTime.now().toEpochSecond(ZoneOffset.ofHours(8)) * 1000;
-        String payload = String.format(pattern, startTimestamp, endTimestamp);
+        String payload = "{\"type\":null,\"createTimeStart\":1522857600000,\"createTimeEnd\":1530719999000,\"pageNo\":1,\"pageSize\":1}";
 
         String result = HttpUtils.sendPostByJsonData(url, headerMap, payload);
         JsonObject jsonObject = new JsonParser().parse(result).getAsJsonObject().getAsJsonObject("data").getAsJsonArray("resultList").get(0).getAsJsonObject();
         double winMoney = jsonObject.get("winMoney").getAsDouble();
-        String gameIssueNumber = jsonObject.get("issue").getAsString();
-        return new Pair<>(gameIssueNumber, winMoney);
+
+        if(winMoney > 0) {
+            log.info("上期中奖，中奖金额为 {}", winMoney);
+        }
+        if(winMoney < 0.01) {
+            long transactionId = jsonObject.get("id").getAsLong();
+            String gameIssueNumber = jsonObject.get("issue").getAsString();
+            double price = jsonObject.get("money").getAsDouble();
+            url = "https://11c8.cc/apis/orderLot/findDetailApp";
+            String pattern = "{\"id\":%d}";
+            payload = String.format(pattern, transactionId);
+            result = HttpUtils.sendPostByJsonData(url, headerMap, payload);
+            String bettingNumber = new JsonParser().parse(result).getAsJsonObject().getAsJsonObject("data").get("betCode").getAsString();
+            String winningNumber = new JsonParser().parse(result).getAsJsonObject().getAsJsonObject("data").get("winningNum").toString();
+            BettingDto bettingDto = BettingDto.builder().price(price).bettingNumber(bettingNumber).gameIssueNumber(gameIssueNumber).build();
+            if(StringUtils.isEmpty(winningNumber) || winningNumber.equals("null")) {
+                return Optional.empty();
+            }
+            return Optional.of(bettingDto);
+        }
+        return Optional.empty();
     }
 }
