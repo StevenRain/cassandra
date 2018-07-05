@@ -12,7 +12,8 @@ import org.springframework.stereotype.Component;
 @Component
 @Slf4j
 public class UpdateOpenCodeForWoodyTask {
-    @Scheduled(cron = "5/10 * * * * *")
+git
+//    @Scheduled(cron = "5/10 * * * * *")
     public void updateOpenCodeWoody() {
         log.info("投注之前的金额：{}",S118Utils.getBalance(WoodyUtils.getToken("163.com")));
         //BetService.betByHistory();
