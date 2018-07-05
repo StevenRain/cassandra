@@ -6,5 +6,7 @@ public class PublicUtils {
     public static final String BIG="大";
     public static final String SMALL="小";
     public static final String EMAIL="163.com";
+    public static final double PRICE=120.00;
+    public static final double PRICE2=100.00;
     public static final String TOKEN="a9aa04fc4c3cebd32920fffc5a834c01";
 }

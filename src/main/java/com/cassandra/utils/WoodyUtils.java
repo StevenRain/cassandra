@@ -20,13 +20,14 @@ public class WoodyUtils {
         return "";
     }
 
-    public static BettingDto buildBetByNumber(String betNumber, String token) {
+    public static BettingDto buildBetByNumber(String betNumber,double price, String token) {
         log.info("下注号码为：" + betNumber);
+        log.info("下注金额为：" + price);
         if ("单".equals(betNumber)) {
 
             return BettingDto.builder()
                     .gameIssueNumber(S118Utils.getLatestGameIssueNumber())
-                    .price(2)
+                    .price(price)
                     .bettingNumber("单")
                     .token(token)
                     .build();
@@ -35,7 +36,7 @@ public class WoodyUtils {
 
             return BettingDto.builder()
                     .gameIssueNumber(S118Utils.getLatestGameIssueNumber())
-                    .price(2)
+                    .price(price)
                     .bettingNumber("双")
                     .token(token)
                     .build();
@@ -44,7 +45,7 @@ public class WoodyUtils {
 
             return BettingDto.builder()
                     .gameIssueNumber(S118Utils.getLatestGameIssueNumber())
-                    .price(2)
+                    .price(price)
                     .bettingNumber("大")
                     .token(token)
                     .build();
@@ -53,7 +54,7 @@ public class WoodyUtils {
 
             return BettingDto.builder()
                     .gameIssueNumber(S118Utils.getLatestGameIssueNumber())
-                    .price(2)
+                    .price(price)
                     .bettingNumber("小")
                     .token(token)
                     .build();
