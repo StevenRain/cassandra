@@ -34,7 +34,12 @@ public class UpdateOpenCodeForStevenTask {
         log.info("本次分析结果");
         openResult.getOpenResultDtoList().forEach(dto -> log.info("{}", dto));
         log.info("大 {} 小 {} 单 {} 双 {}", openResult.getBigRatio(), openResult.getSmallRatio(), openResult.getOddRatio(), openResult.getEvenRatio());
-        SoundUtils.shortBeep();
+        String recommendBettingNumber = S118Utils.getRecommendBettingNumber(openResult);
+        if(StringUtils.isEmpty(recommendBettingNumber)) {
+            SoundUtils.shortBeep();
+        }else {
+            SoundUtils.longBeep();
+        }
         cacheMap.put(KEY_FOR_OPEN_RESULT, openResult);
     }
 
@@ -86,10 +91,7 @@ public class UpdateOpenCodeForStevenTask {
             OpenResult openResult = S118Utils.buildLatestOpenResult();
             printAnalyzeResult(openResult);
 
-            String recommendBettingNumber = S118Utils.getRecommendBettingNumber(openResult);
-            if(!StringUtils.isEmpty(recommendBettingNumber)) {
-                SoundUtils.longBeep();
-            }
+//            String recommendBettingNumber = S118Utils.getRecommendBettingNumber(openResult);
 //            betting(userInfo, recommendBettingNumber);
         });
     }

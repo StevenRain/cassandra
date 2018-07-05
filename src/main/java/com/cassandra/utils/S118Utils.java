@@ -23,7 +23,7 @@ import org.springframework.util.StringUtils;
 @Slf4j
 public class S118Utils {
 
-    private static final double THRESHOLD = 0.4;
+    private static final double THRESHOLD = 0.3;
     private static final int CONTINUE_ISSUES = 3;
 
     @Data
