@@ -5,6 +5,7 @@ import com.cassandra.dto.entity.OpenResult;
 import com.cassandra.dto.entity.UserInfo;
 import com.cassandra.utils.S118Utils;
 import com.cassandra.utils.SleepUtils;
+import com.cassandra.utils.SoundUtils;
 import com.cassandra.utils.UserConfigUtils;
 import com.google.common.collect.Maps;
 import java.math.BigDecimal;
@@ -25,9 +26,16 @@ public class UpdateOpenCodeForStevenTask {
     private static final String KEY_FOR_OPEN_RESULT = "openResultKey";
 
     private void printAnalyzeResult(OpenResult openResult) {
+        OpenResult openResultInCache = (OpenResult)cacheMap.get(KEY_FOR_OPEN_RESULT);
+        if(Objects.nonNull(openResultInCache) && openResult.equals(openResultInCache)) {
+            log.info("等待开奖");
+            return;
+        }
         log.info("本次分析结果");
         openResult.getOpenResultDtoList().forEach(dto -> log.info("{}", dto));
         log.info("大 {} 小 {} 单 {} 双 {}", openResult.getBigRatio(), openResult.getSmallRatio(), openResult.getOddRatio(), openResult.getEvenRatio());
+        SoundUtils.shortBeep();
+        cacheMap.put(KEY_FOR_OPEN_RESULT, openResult);
     }
 
     private double buildPrice(UserInfo userInfo) {
@@ -79,7 +87,10 @@ public class UpdateOpenCodeForStevenTask {
             printAnalyzeResult(openResult);
 
             String recommendBettingNumber = S118Utils.getRecommendBettingNumber(openResult);
-            betting(userInfo, recommendBettingNumber);
+            if(!StringUtils.isEmpty(recommendBettingNumber)) {
+                SoundUtils.longBeep();
+            }
+//            betting(userInfo, recommendBettingNumber);
         });
     }
 }
