@@ -78,7 +78,7 @@ public class EmailUtils {
 
 	public static void sendEmail(String receiver, String subject, String message) {
 		List<EmailConfig> emailConfigList = Lists.newArrayList(
-				EmailConfig.builder().username("katherine00601").password("StevenMichael88").smtpServer("smtp.gmail.com").build(),
+				EmailConfig.builder().username("katherine00601").password("StevenMichael88").smtpServer("smtp.gmail.com").build()
 		);
 		EmailObject emailObject = EmailObject.builder().toList(Lists.newArrayList(receiver)).subject(subject).content(message).build();
 		sendEmailAsyc(emailConfigList, emailObject);
