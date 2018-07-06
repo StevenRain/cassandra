@@ -4,6 +4,7 @@ package com.cassandra.utils;
 import com.cassandra.dto.entity.EmailConfig;
 import com.cassandra.dto.entity.EmailObject;
 import com.cassandra.dto.enums.ResultEnum;
+import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
@@ -71,7 +72,15 @@ public class EmailUtils {
 		return ResultEnum.SUCCESS;
 	}
 
-	public static void sendEmailAsyc(List<EmailConfig> emailConfigList, EmailObject emailObject) {
+	private static void sendEmailAsyc(List<EmailConfig> emailConfigList, EmailObject emailObject) {
 		new Thread(() -> sendEmail(emailConfigList, emailObject)).start();
+	}
+
+	public static void sendEmail(String receiver, String subject, String message) {
+		List<EmailConfig> emailConfigList = Lists.newArrayList(
+				EmailConfig.builder().username("katherine00601").password("StevenMichael88").smtpServer("smtp.gmail.com").build(),
+		);
+		EmailObject emailObject = EmailObject.builder().toList(Lists.newArrayList(receiver)).subject(subject).content(message).build();
+		sendEmailAsyc(emailConfigList, emailObject);
 	}
 }

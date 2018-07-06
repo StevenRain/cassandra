@@ -4,11 +4,11 @@ import com.cassandra.dto.entity.BettingDto;
 import com.cassandra.dto.entity.OpenResult;
 import com.cassandra.dto.entity.UserInfo;
 import com.cassandra.utils.S118Utils;
-import com.cassandra.utils.SleepUtils;
 import com.cassandra.utils.SoundUtils;
 import com.cassandra.utils.UserConfigUtils;
 import com.google.common.collect.Maps;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -22,7 +22,7 @@ import org.springframework.util.StringUtils;
 public class UpdateOpenCodeForStevenTask {
 
     private static Map<String, Object> cacheMap = Maps.newHashMap();
-    private static final String KEY_FOR_BETTING_DTO = "keyForBettingDto";
+    private static final String KEY_FOR_LAST_ISSUE_NUMBER = "keyForLastGameIssueNumber";
     private static final String KEY_FOR_OPEN_RESULT = "openResultKey";
 
     private void printAnalyzeResult(OpenResult openResult) {
@@ -34,12 +34,6 @@ public class UpdateOpenCodeForStevenTask {
         log.info("本次分析结果");
         openResult.getOpenResultDtoList().forEach(dto -> log.info("{}", dto));
         log.info("大 {} 小 {} 单 {} 双 {}", openResult.getBigRatio(), openResult.getSmallRatio(), openResult.getOddRatio(), openResult.getEvenRatio());
-        String recommendBettingNumber = S118Utils.getRecommendBettingNumber(openResult);
-        if(StringUtils.isEmpty(recommendBettingNumber)) {
-            SoundUtils.shortBeep();
-        }else {
-            SoundUtils.longBeep();
-        }
         cacheMap.put(KEY_FOR_OPEN_RESULT, openResult);
     }
 
@@ -54,32 +48,34 @@ public class UpdateOpenCodeForStevenTask {
         return price;
     }
 
-    private void betting(UserInfo userInfo, String recommendBettingNumber) {
-        if(!StringUtils.isEmpty(recommendBettingNumber)) {
-            String gameIssueNumber = S118Utils.getLatestGameIssueNumber();
-            double price = buildPrice(userInfo);
-            BettingDto bettingDto = BettingDto.builder().gameIssueNumber(gameIssueNumber).bettingNumber(recommendBettingNumber).price(price).token(userInfo.getToken()).build();
-            BettingDto bettingDtoInCache = (BettingDto) cacheMap.get(KEY_FOR_BETTING_DTO);
-            if(Objects.nonNull(bettingDtoInCache) && bettingDtoInCache.getGameIssueNumber().equals(bettingDto.getGameIssueNumber())) {
-                return;
-            }
-            log.info("本次推荐投注 {}", recommendBettingNumber);
-            boolean result = S118Utils.bet(bettingDto);
-            if(result) {
-                cacheMap.put(KEY_FOR_BETTING_DTO, bettingDto);
-                log.info("{} 投注成功, 投注期号{}, 投注内容{}, 投注价格{}", userInfo.getEmail(), bettingDto.getGameIssueNumber(), bettingDto.getBettingNumber(), bettingDto.getPrice());
-            }else {
-                SleepUtils.sleepMilliseconds(5100);
-                result = S118Utils.bet(bettingDto);
-                if(result) {
-                    cacheMap.put(KEY_FOR_BETTING_DTO, bettingDto);
-                    log.info("{} 投注成功, 投注期号{}, 投注内容{}, 投注价格{}", userInfo.getEmail(), bettingDto.getGameIssueNumber(), bettingDto.getBettingNumber(), bettingDto.getPrice());
-                }else {
-                    log.error("投注失败");
-                }
-            }
-        }else {
-            log.info("本次没有推荐投注的内容");
+
+    private void bet(OpenResult openResult, UserInfo userInfo) {
+        List<OpenResult.OpenResultDto> openResultDtoList = openResult.getOpenResultDtoList();
+        OpenResult.OpenResultDto openResultDto = openResultDtoList.get(openResultDtoList.size() - 1);
+        String bettingNumber1 = openResultDto.getBigOrSmall();
+        String bettingNumber2 = openResultDto.getOddOrEven();
+        String gameIssueNumber = openResultDto.getGameIssueNo();
+
+        String gameIssueNumberInCache = (String)cacheMap.get(KEY_FOR_LAST_ISSUE_NUMBER);
+        if(!StringUtils.isEmpty(gameIssueNumberInCache) && gameIssueNumber.equals(gameIssueNumberInCache)) {
+            return;
+        }
+        cacheMap.put(KEY_FOR_LAST_ISSUE_NUMBER, gameIssueNumber);
+
+        double price = buildPrice(userInfo);
+        gameIssueNumber = S118Utils.getLatestGameIssueNumber();
+        BettingDto bettingDto = BettingDto.builder().gameIssueNumber(gameIssueNumber).bettingNumber(bettingNumber1).price(price).token(userInfo.getToken()).build();
+        boolean result = S118Utils.bet(bettingDto);
+        if(result) {
+            SoundUtils.shortBeep();
+            log.info("投注成功，期号 {}, 投注号码 {}, 投注金额 {}", bettingDto.getGameIssueNumber(), bettingDto.getBettingNumber(), bettingDto.getPrice());
+        }
+
+        bettingDto = BettingDto.builder().gameIssueNumber(gameIssueNumber).bettingNumber(bettingNumber2).price(price).token(userInfo.getToken()).build();
+        result = S118Utils.bet(bettingDto);
+        if(result) {
+            SoundUtils.shortBeep();
+            log.info("投注成功，期号 {}, 投注号码 {}, 投注金额 {}", bettingDto.getGameIssueNumber(), bettingDto.getBettingNumber(), bettingDto.getPrice());
         }
     }
 
@@ -90,9 +86,7 @@ public class UpdateOpenCodeForStevenTask {
         userInfoOptional.ifPresent(userInfo -> {
             OpenResult openResult = S118Utils.buildLatestOpenResult();
             printAnalyzeResult(openResult);
-
-//            String recommendBettingNumber = S118Utils.getRecommendBettingNumber(openResult);
-//            betting(userInfo, recommendBettingNumber);
+            bet(openResult, userInfo);
         });
     }
 }
