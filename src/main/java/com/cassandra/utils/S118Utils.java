@@ -9,6 +9,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.annotations.SerializedName;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -20,11 +22,15 @@ import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 
+import static com.cassandra.utils.GlobalParameter.CONTINUE_ISSUES;
+import static com.cassandra.utils.GlobalParameter.THRESHOLD;
+
 @Slf4j
 public class S118Utils {
 
-    private static final double THRESHOLD = 0.3;
-    private static final int CONTINUE_ISSUES = 3;
+
+    private S118Utils() {
+    }
 
     @Data
     private static class GameData {
@@ -124,6 +130,7 @@ public class S118Utils {
                 .build();
     }
 
+
     /**
      * 获取用户余额
      * */
@@ -174,21 +181,23 @@ public class S118Utils {
         }
     }
 
+    private static Predicate<List<OpenResult.OpenResultDto>> bigSmallPredicate = subOpenResultDtoList -> subOpenResultDtoList.stream().limit(CONTINUE_ISSUES).map(OpenResult.OpenResultDto::getBigOrSmall).distinct().count() == 1 &&
+            subOpenResultDtoList.stream().limit(CONTINUE_ISSUES + 1L).map(OpenResult.OpenResultDto::getBigOrSmall).distinct().count() == 2;
+
+    private static Predicate<List<OpenResult.OpenResultDto>> oddEvenPredicate = subOpenResultDtoList -> subOpenResultDtoList.stream().limit(CONTINUE_ISSUES).map(OpenResult.OpenResultDto::getOddOrEven).distinct().count() == 1 &&
+            subOpenResultDtoList.stream().limit(CONTINUE_ISSUES + 1L).map(OpenResult.OpenResultDto::getOddOrEven).distinct().count() == 2;
+
     public static String getRecommendBettingNumber(OpenResult openResult) {
         List<OpenResult.OpenResultDto> openResultDtoList = openResult.getOpenResultDtoList();
-        List<OpenResult.OpenResultDto> subOpenResultDtoList = openResultDtoList.stream().skip(openResultDtoList.size() - 4L).collect(Collectors.toList());
+        List<OpenResult.OpenResultDto> subOpenResultDtoList = openResultDtoList.stream().skip(openResultDtoList.size() - (long)(CONTINUE_ISSUES + 1)).collect(Collectors.toList());
         //前3个一样，最后一个不一样的
-        boolean bigSmallMatch = subOpenResultDtoList.stream().limit(CONTINUE_ISSUES).map(OpenResult.OpenResultDto::getBigOrSmall).distinct().count() == 1 &&
-                subOpenResultDtoList.stream().limit(CONTINUE_ISSUES + 1L).map(OpenResult.OpenResultDto::getBigOrSmall).distinct().count() == 2;
-
-        boolean oddEvenMatch = subOpenResultDtoList.stream().limit(CONTINUE_ISSUES).map(OpenResult.OpenResultDto::getOddOrEven).distinct().count() == 1 &&
-                        subOpenResultDtoList.stream().limit(CONTINUE_ISSUES + 1L).map(OpenResult.OpenResultDto::getOddOrEven).distinct().count() == 2;
+        boolean bigSmallMatch = bigSmallPredicate.test(subOpenResultDtoList);
+        boolean oddEvenMatch = oddEvenPredicate.test(subOpenResultDtoList);
 
         String finalBettingNumber = "";
         double minRatio = 1.0;
         if(bigSmallMatch) {
             String bettingNumber = subOpenResultDtoList.stream().skip(CONTINUE_ISSUES).map(OpenResult.OpenResultDto::getBigOrSmall).findAny().orElse("");
-
             if(bettingNumber.equals("大") && openResult.getBigRatio() <= THRESHOLD) {
                 minRatio = openResult.getBigRatio();
                 finalBettingNumber = bettingNumber;
@@ -201,48 +210,55 @@ public class S118Utils {
 
         if(oddEvenMatch) {
             String bettingNumber = subOpenResultDtoList.stream().skip(CONTINUE_ISSUES).map(OpenResult.OpenResultDto::getOddOrEven).findAny().orElse("");
-            if(bettingNumber.equals("单") && openResult.getOddRatio() <= THRESHOLD) {
-                if(openResult.getOddRatio() < minRatio) {
-                    minRatio = openResult.getOddRatio();
-                    finalBettingNumber = bettingNumber;
-                }
+            if(bettingNumber.equals("单") && openResult.getOddRatio() <= THRESHOLD && openResult.getOddRatio() < minRatio) {
+                minRatio = openResult.getOddRatio();
+                finalBettingNumber = bettingNumber;
             }
-            if(bettingNumber.equals("双") && openResult.getEvenRatio() <= THRESHOLD) {
-                if(openResult.getEvenRatio() < minRatio) {
-                    finalBettingNumber = bettingNumber;
-                }
+            if(bettingNumber.equals("双") && openResult.getEvenRatio() <= THRESHOLD && openResult.getEvenRatio() < minRatio) {
+                finalBettingNumber = bettingNumber;
             }
         }
         return finalBettingNumber;
     }
 
 
-    public static Optional<BettingDto> getLastBettingOrder(String token) {
+    public static Optional<BettingDto> getLastLossBettingOrder(String token) {
         Map<String, String> headerMap = getHeaderMap();
         headerMap.put("tk", token);
 
         String url = "https://11c8.cc/apis/orderLot/findByConditionApp";
-        String payload = "{\"type\":null,\"createTimeStart\":1522857600000,\"createTimeEnd\":1530719999000,\"pageNo\":1,\"pageSize\":1}";
+        String queryPattern = "{\"type\":null,\"createTimeStart\":%d,\"createTimeEnd\":%d,\"pageNo\":1,\"pageSize\":1}";
+        long startTimestamp = LocalDateTime.now().withHour(0).withMinute(0).withSecond(1).toEpochSecond(ZoneOffset.ofHours(8)) * 1000;
+        long endTimestamp = LocalDateTime.now().toEpochSecond(ZoneOffset.ofHours(8)) * 1000;
+        String payload = String.format(queryPattern, startTimestamp, endTimestamp);
 
         String result = HttpUtils.sendPostByJsonData(url, headerMap, payload);
+        if(!result.contains("winMoney")) {
+            return Optional.empty();
+        }
         JsonObject jsonObject = new JsonParser().parse(result).getAsJsonObject().getAsJsonObject("data").getAsJsonArray("resultList").get(0).getAsJsonObject();
         double winMoney = jsonObject.get("winMoney").getAsDouble();
 
-        if(winMoney > 0) {
-            log.info("上期中奖，中奖金额为 {}", winMoney);
-        }
+
         if(winMoney < 0.01) {
             long transactionId = jsonObject.get("id").getAsLong();
             String gameIssueNumber = jsonObject.get("issue").getAsString();
             double price = jsonObject.get("money").getAsDouble();
             url = "https://11c8.cc/apis/orderLot/findDetailApp";
             String pattern = "{\"id\":%d}";
-            payload = String.format(pattern, transactionId);
-            result = HttpUtils.sendPostByJsonData(url, headerMap, payload);
+            queryPattern = String.format(pattern, transactionId);
+            result = HttpUtils.sendPostByJsonData(url, headerMap, queryPattern);
             String bettingNumber = new JsonParser().parse(result).getAsJsonObject().getAsJsonObject("data").get("betCode").getAsString();
             String winningNumber = new JsonParser().parse(result).getAsJsonObject().getAsJsonObject("data").get("winningNum").toString();
             BettingDto bettingDto = BettingDto.builder().price(price).bettingNumber(bettingNumber).gameIssueNumber(gameIssueNumber).build();
+
             if(StringUtils.isEmpty(winningNumber) || winningNumber.equals("null")) {
+                return Optional.empty();
+            }
+
+            String latestGameIssueNumber = getLatestGameIssueNumber();
+            long interval = Long.parseLong(latestGameIssueNumber) - Long.parseLong(bettingDto.getGameIssueNumber());
+            if(interval > 1L) {
                 return Optional.empty();
             }
             return Optional.of(bettingDto);
