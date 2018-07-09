@@ -59,7 +59,7 @@ public class UpdateOpenCodeForStevenTask {
         userInfoOptional.ifPresent(userInfo -> {
             OpenResult openResult = S118Utils.buildLatestOpenResult();
             printAnalyzeResult(openResult);
-            bettingMethodService.bet3(openResult, userInfo);
+            bettingMethodService.bet4(openResult, userInfo);
         });
     }
 }

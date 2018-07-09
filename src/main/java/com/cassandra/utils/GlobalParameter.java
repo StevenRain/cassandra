@@ -3,9 +3,9 @@ package com.cassandra.utils;
 public class GlobalParameter {
 
     /**
-     * 连续出现次数小于20%
+     * 连续出现次数小于30%
      * */
-    public static final double THRESHOLD = 0.2;
+    public static final double THRESHOLD = 0.3;
 
     /**
      * 连续出现3期
@@ -20,5 +20,5 @@ public class GlobalParameter {
     /**
      * 最多跟n期
      * */
-    public static final int MAX_FOLLOWING_ISSUES = 3;
+    public static final int MAX_FOLLOWING_ISSUES = 1;
 }

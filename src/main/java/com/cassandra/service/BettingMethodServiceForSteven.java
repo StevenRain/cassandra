@@ -31,7 +31,8 @@ public class BettingMethodServiceForSteven {
         balance = balance * KEEP_BALANCE_RATIO;
         log.info("{} 当前余额 {}", userInfo.getEmail(), balance);
 
-        double price = balance / ((2 << MAX_FOLLOWING_ISSUES) - 1);
+//        double price = balance / ((2 << MAX_FOLLOWING_ISSUES) - 1);
+        double price = balance / 40;
         price = BigDecimal.valueOf(price).setScale(1, BigDecimal.ROUND_HALF_UP).doubleValue();
         if(price > 1.0) {
             price = BigDecimal.valueOf(price).setScale(0, BigDecimal.ROUND_DOWN).doubleValue();
@@ -106,6 +107,24 @@ public class BettingMethodServiceForSteven {
     }
 
 
+    /**
+     * 投注推荐号码
+     * */
+    private void betRecommendBettingNumber(OpenResult openResult, UserInfo userInfo) {
+        String recommendBettingNumber = S118Utils.getRecommendBettingNumber(openResult);
+        if(!StringUtils.isEmpty(recommendBettingNumber)) {
+            log.info("本期推荐投注 {}", recommendBettingNumber);
+            String latestGameIssueNumber = S118Utils.getLatestGameIssueNumber();
+            double price = buildPrice(userInfo);
+            BettingDto bettingDto = BettingDto.builder().gameIssueNumber(latestGameIssueNumber).bettingNumber(recommendBettingNumber).price(price).token(userInfo.getToken()).build();
+            boolean result = S118Utils.bet(bettingDto);
+            if(result) {
+                SoundUtils.shortBeep();
+                log.info("投注成功，期号 {}, 投注号码 {}, 投注金额 {}", bettingDto.getGameIssueNumber(), bettingDto.getBettingNumber(), bettingDto.getPrice());
+            }
+        }
+    }
+
 
     /**
      * 投注方案3， 连续n期一样，第n+1期不一样时下注，输了2倍投
@@ -139,19 +158,23 @@ public class BettingMethodServiceForSteven {
             return;
         }
 
-        //本期
-        String recommendBettingNumber = S118Utils.getRecommendBettingNumber(openResult);
-        if(!StringUtils.isEmpty(recommendBettingNumber)) {
-            log.info("本期推荐投注 {}", recommendBettingNumber);
-            String latestGameIssueNumber = S118Utils.getLatestGameIssueNumber();
-            double price = buildPrice(userInfo);
-            BettingDto bettingDto = BettingDto.builder().gameIssueNumber(latestGameIssueNumber).bettingNumber(recommendBettingNumber).price(price).token(userInfo.getToken()).build();
-            boolean result = S118Utils.bet(bettingDto);
-            if(result) {
-                SoundUtils.shortBeep();
-                log.info("投注成功，期号 {}, 投注号码 {}, 投注金额 {}", bettingDto.getGameIssueNumber(), bettingDto.getBettingNumber(), bettingDto.getPrice());
-            }
-        }
+        betRecommendBettingNumber(openResult, userInfo);
     }
 
+    /**
+     * 投注方案4， 连续n期一样，第n+1期不一样时下注，输了不倍投
+     * */
+    public void bet4(OpenResult openResult, UserInfo userInfo) {
+        List<OpenResult.OpenResultDto> openResultDtoList = openResult.getOpenResultDtoList();
+        List<OpenResult.OpenResultDto> subOpenResultDtoList = openResultDtoList.stream().skip(openResultDtoList.size() - 2L).collect(Collectors.toList());
+
+        String gameIssueNumber = subOpenResultDtoList.get(1).getGameIssueNo();
+        String gameIssueNumberInCache = (String)cacheMap.get(KEY_FOR_LAST_ISSUE_NUMBER);
+        if(!StringUtils.isEmpty(gameIssueNumberInCache) && gameIssueNumber.equals(gameIssueNumberInCache)) {
+            return;
+        }
+        cacheMap.put(KEY_FOR_LAST_ISSUE_NUMBER, gameIssueNumber);
+
+        betRecommendBettingNumber(openResult, userInfo);
+    }
 }
