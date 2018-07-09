@@ -4,6 +4,7 @@ import com.cassandra.dto.entity.BettingDto;
 import com.cassandra.dto.entity.OpenResult;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -80,7 +81,6 @@ public class S118Utils {
         return v1.compareTo(v2);
     };
 
-
     /**
      * 生成最近10期的开奖结果分析
      * */
@@ -113,6 +113,8 @@ public class S118Utils {
             }
             openResultDto.setGameIssueNo(gameData.getGameIssueNo());
             openResultDto.setOpenCode(gameData.getOpenCode());
+            int count = Sets.newHashSet(gameData.getOpenCodes()).size();
+            openResultDto.setNumberProperty(count + "");
             openResultDtoList.add(openResultDto);
         }
 

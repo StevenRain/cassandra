@@ -36,6 +36,11 @@ public class OpenResult {
          *  单双属性
          * */
         private String oddOrEven;
+
+        /**
+         * 同号属性
+         * */
+        private String numberProperty;
     }
 
     /**

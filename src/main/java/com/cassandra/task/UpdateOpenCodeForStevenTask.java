@@ -35,7 +35,7 @@ public class UpdateOpenCodeForStevenTask {
         }
         SoundUtils.shortBeep();
         log.info("本次分析结果");
-        openResult.getOpenResultDtoList().forEach(dto -> log.info("{}, {}, {}, {}", dto.getGameIssueNo(), dto.getOpenCode(), dto.getBigOrSmall(), dto.getOddOrEven()));
+        openResult.getOpenResultDtoList().forEach(dto -> log.info("{}, {}, {}, {}, {}", dto.getGameIssueNo(), dto.getOpenCode(), dto.getBigOrSmall(), dto.getOddOrEven(), dto.getNumberProperty()));
         log.info("大 {} 小 {} 单 {} 双 {}", openResult.getBigRatio(), openResult.getSmallRatio(), openResult.getOddRatio(), openResult.getEvenRatio());
         cacheMap.put(KEY_FOR_OPEN_RESULT, openResult);
     }
